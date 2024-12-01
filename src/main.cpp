@@ -65,6 +65,7 @@ TopicHandler handlers[] = {
     {SUB_TOPIC_E_IM, MODBUS_REG_E_IM},
 };
 // Array of base register entry
+//ca_stdregisters modbus_common;
 ca_stdregisters modbus_common = {
     MODBUS_REG_SM_MFRNAME,
     MODBUS_REG_SM_MODEL,
@@ -98,7 +99,7 @@ void setup()
   init_mqtt();
 
   mb.server();
-  // initModbuscommon();
+  //initModbuscommon();
   fillModbusregs();
 
   Serial.println("Start MODBUS Server");
@@ -123,10 +124,10 @@ bool handleTopic(const char *c_topic, const char *st_dat)
       String str_dat = st_dat;
       float value = str_dat.toFloat();
       uint16_t *hexbytes = reinterpret_cast<uint16_t *>(&value);
-
+      blockmbread = true;
       mb.Hreg(handler.regadress, hexbytes[1]);
       mb.Hreg((handler.regadress + 1), hexbytes[0]);
-
+      blockmbread = false;
       Serial.printf("Topic= %s  Register= 0x%x Wert= %f\r\n", handler.topic, handler.regadress, value);
 
       return true;
@@ -197,7 +198,7 @@ void fillModbusregs(void)
     // Serial.printf("Modbus: write %d to register %d\r\n", value, (0x9c74 + (i / 2)));
   }
 
-  mb.addHreg(0x9c84, 202);    // 40068 DeviceAddress Modbus TCP Address: 202
+  mb.addHreg(0x9c84, 100);    // 40068 DeviceAddress Modbus TCP Address: 202
   mb.addHreg(0x9c85, 213);    // 40069 SunSpec_DID
   mb.addHreg(0x9c86, 124);    // 40070 SunSpec_Length
   mb.addHreg(0x9c87, 0, 123); // 40071 - 40194 smartmeter data
