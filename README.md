@@ -2,16 +2,21 @@
 # ESP32 Fronius Smartmeter MQTT zu MODBUS Emulator
 
 Der ESP32 emuliert einen Fronius Smart Meter als TCPI MODBUS-Gerät.
+Er kann Verbrauchsdaten über MQTT empfangen und setzt diese auf die entsprechenden MODBUS-Register um.
 
 Verfügbar als Visual Studio Code mit PlatformIO Projekt.
 
 ## Voraussetzungen
-Hardware ESP32 (devKit)\
+
+- Energie bzw. Verbrauchsdaten oder weitere Messwerte stehen zur Verfügung und können über MQTT verteilt werden.
+- Fronius Gen24 Wechselrichter
+- Hardware ESP32 (devKit)
 WiFi und MQTT Zugangsinformationen sind in include/myMQTTDef.h einzutragen.
 
 Empfängt die Energiedaten über MQTT --> Topics siehe include/myMQTTDef.h\
 und stellt diese im entsprechenden MODBUS Register zur Verfügung --> siehe include/FroniusSM_Register\
 MODBUS-Register Format ist float.
+
 
 
 Bsp:\
@@ -38,16 +43,7 @@ Dies ist eine Quick and Dirty Bastellösung. Es sind bisher nicht alle Register 
 
 Getestet mit  mit Primo Gen24 ohne Batterie. Somit nur die Anzeige und Auswertung im Fronius bzw. Solarweb verwendet.\
 Auslesen des Zählers des Netzbetreibers mit ESPHome.\
-Automatisierung in Homeassistant, welche diese Daten zyklisch an die entsprechenden Topics verteilt.
-
-## Spende
-
-Wenn es hilft und gefällt, würde ich mich über eine kleine Spende freuen :)
-
-[PayPal](https://paypal.me/ESPFSMMQTT2MB?country.x=DE&locale.x=de_DE) 
-
-
-Danke!
+Automatisierung in Homeassistant, welche diese Daten zyklisch an die entsprechenden MQTT Topics verteilt.
 
 ## Bugs
 
@@ -56,6 +52,14 @@ Führt evtl. zu einer Meldung im Fronius SolarWeb Info Display, dass die Firmwar
 Fronius SolarWeb:\
 Die Leistungen werden im Energieflussdiagramm aus der übertragenen Leistung dargestellt.
 Der Energieflussgraph berechnet die Leistung aus der verbrauchten Energie. Dies kann dazu führen, dass z.B. bei gerundeten Energiewerten beim Auslesen keine Änderung auftritt und der Leistungswert im Diagramm für den Zeitraum 0W ist.
+
+## Spende
+
+Wenn es hilft und gefällt, würde ich mich über eine kleine Spende freuen :)
+
+[PayPal](https://paypal.me/ESPFSMMQTT2MB?country.x=DE&locale.x=de_DE) 
+
+Danke!
 
 ## Haftungsausschluss
 
