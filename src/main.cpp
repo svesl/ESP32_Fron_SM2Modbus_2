@@ -19,11 +19,13 @@
 //-- --------------------------------------------------------------------------
 //-- 1.0   svesl  2024/11/22    first v ersion
 //-- 1.2   svesl  2024/11/28    test and add registers
+//-- 1.3   svesl  2024/12/16    add WiFi Events and reconnect support
 
-#define Version 1.2
+#define Version 1.3
 #include <Arduino.h>
 #include <ModbusIP_ESP8266.h> //für MODBUS
 #include <WiFi.h>             //für WiFi Verbinding
+#include <ESPmDNS.h>
 #include <mqtt_client.h>      //
 #include <iostream>
 #include <cstring>
@@ -46,6 +48,10 @@ bool handleTopic(const char *c_topic, const char *st_dat);
 
 bool isConnected = false;
 bool blockmbread = false;
+
+void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info);
+uint32_t wifi_connect_retry =0;
+const char* hostname = "esp32-FronSM2MODBUS";
 
 // Array of TopicHandler to match topics to register
 TopicHandler handlers[] = {
@@ -86,6 +92,9 @@ void setup()
   Serial.println(Version);
 
   // Connect to WiFi
+  WiFi.onEvent(WiFiEvent);
+  //WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
+  WiFi.setHostname(hostname);
   WiFi.begin(ssid, pass);
   delay(200);
   while (WiFi.status() != WL_CONNECTED)
@@ -275,4 +284,113 @@ esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
     break;
   }
   return ESP_OK;
+}
+
+
+void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
+{
+  Serial.printf("[WiFi-event] event: %d\n", event);
+  // Serial.printf("[WiFi-event] info: %d\n", info);
+
+  switch (event)
+  {
+  case ARDUINO_EVENT_WIFI_READY:
+    Serial.println("WiFi interface ready");
+    break;
+  case ARDUINO_EVENT_WIFI_SCAN_DONE:
+    Serial.println("Completed scan for access points");
+    break;
+  case ARDUINO_EVENT_WIFI_STA_START:
+    Serial.println("WiFi client started");
+    break;
+  case ARDUINO_EVENT_WIFI_STA_STOP:
+    Serial.println("WiFi client stopped");
+    break;
+  case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+    Serial.println("Connected to access point");
+    Serial.println(WiFi.getHostname());
+    Serial.printf("RSSI: %d\n", WiFi.RSSI());
+    wifi_connect_retry =0;
+    break;
+  case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+    Serial.printf("Disconnected from WiFi access point");
+    Serial.printf("Disconnected from WiFi access point. Count = %d\n", wifi_connect_retry);
+    wifi_connect_retry++;  // keine Überlaufüberwachung
+    WiFi.reconnect();
+   
+    break;
+  case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
+    Serial.println("Authentication mode of access point has changed");
+    break;
+  case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+    Serial.print("Obtained IP address: ");
+    Serial.println(WiFi.localIP());
+    if (!MDNS.begin(WiFi.getHostname()))
+    { // http://esp32.local
+      Serial.println("Error setting up MDNS responder!");
+    }
+    else
+    {
+      Serial.println("mDNS responder started");
+      Serial.printf("Call: http://%s", WiFi.getHostname());
+      Serial.println(".local");
+    }
+    break;
+  case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+    Serial.println("Lost IP address and IP address is reset to 0");
+    break;
+  case ARDUINO_EVENT_WPS_ER_SUCCESS:
+    Serial.println("WiFi Protected Setup (WPS): succeeded in enrollee mode");
+    break;
+  case ARDUINO_EVENT_WPS_ER_FAILED:
+    Serial.println("WiFi Protected Setup (WPS): failed in enrollee mode");
+    break;
+  case ARDUINO_EVENT_WPS_ER_TIMEOUT:
+    Serial.println("WiFi Protected Setup (WPS): timeout in enrollee mode");
+    break;
+  case ARDUINO_EVENT_WPS_ER_PIN:
+    Serial.println("WiFi Protected Setup (WPS): pin code in enrollee mode");
+    break;
+  case ARDUINO_EVENT_WIFI_AP_START:
+    Serial.println("WiFi access point started");
+    break;
+  case ARDUINO_EVENT_WIFI_AP_STOP:
+    Serial.println("WiFi access point  stopped");
+    break;
+  case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
+    Serial.println("Client connected");
+
+    break;
+  case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
+    Serial.println("Client disconnected");
+    break;
+  case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
+    Serial.println("Assigned IP address to client");
+    break;
+  case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
+    Serial.println("Received probe request");
+    break;
+  case ARDUINO_EVENT_ETH_GOT_IP6:
+    Serial.println("IPv6 is preferred");
+    break;
+  case ARDUINO_EVENT_ETH_START:
+    Serial.println("Ethernet started");
+    break;
+  case ARDUINO_EVENT_ETH_STOP:
+    Serial.println("Ethernet stopped");
+    break;
+  case ARDUINO_EVENT_ETH_CONNECTED:
+    Serial.println("Ethernet connected");
+    break;
+  case ARDUINO_EVENT_ETH_DISCONNECTED:
+    Serial.println("Ethernet disconnected");
+    break;
+  case ARDUINO_EVENT_ETH_GOT_IP:
+    Serial.println("Obtained IP address");
+    break;
+  default:
+    Serial.print("unknown event: ");
+    Serial.println(event);
+    break;
+  }
 }
