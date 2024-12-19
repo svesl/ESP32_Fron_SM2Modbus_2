@@ -20,13 +20,17 @@
 //-- 1.0   svesl  2024/11/22    first v ersion
 //-- 1.2   svesl  2024/11/28    test and add registers
 //-- 1.3   svesl  2024/12/16    add WiFi Events and reconnect support
+//-- 1.4   svesl  2024/12/19    add Block MODBUS befor first value on import and export available
+//-- --------------------------------------------------------------------------
+//-- TODO
+//-- Speicherung Zählerstande für Import Export im Flash oder nvram für reboot
 
-#define Version 1.3
+#define Version 1.4
 #include <Arduino.h>
 #include <ModbusIP_ESP8266.h> //für MODBUS
 #include <WiFi.h>             //für WiFi Verbinding
 #include <ESPmDNS.h>
-#include <mqtt_client.h>      //
+#include <mqtt_client.h> //
 #include <iostream>
 #include <cstring>
 
@@ -48,10 +52,12 @@ bool handleTopic(const char *c_topic, const char *st_dat);
 
 bool isConnected = false;
 bool blockmbread = false;
+bool blockIMfirstread = false; // Blockiert MODBUS bis erster gültiger Zählerwert für Import vorliegt
+bool blockEXfirstread = false; // Blockiert MODBUS bis erster gültiger Zählerwert für Export vorliegt
 
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info);
-uint32_t wifi_connect_retry =0;
-const char* hostname = "esp32-FronSM2MODBUS";
+uint32_t wifi_connect_retry = 0;
+const char *hostname = "esp32-FronSM2MODBUS";
 
 // Array of TopicHandler to match topics to register
 TopicHandler handlers[] = {
@@ -71,7 +77,7 @@ TopicHandler handlers[] = {
     {SUB_TOPIC_E_IM, MODBUS_REG_E_IM},
 };
 // Array of base register entry
-//ca_stdregisters modbus_common;
+// ca_stdregisters modbus_common;
 ca_stdregisters modbus_common = {
     MODBUS_REG_SM_MFRNAME,
     MODBUS_REG_SM_MODEL,
@@ -93,7 +99,7 @@ void setup()
 
   // Connect to WiFi
   WiFi.onEvent(WiFiEvent);
-  //WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
+  // WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
   WiFi.setHostname(hostname);
   WiFi.begin(ssid, pass);
   delay(200);
@@ -108,7 +114,7 @@ void setup()
   init_mqtt();
 
   mb.server();
-  //initModbuscommon();
+  // initModbuscommon();
   fillModbusregs();
 
   Serial.println("Start MODBUS Server");
@@ -116,7 +122,7 @@ void setup()
 
 void loop()
 {
-  if (!blockmbread)
+  if (!blockmbread && blockIMfirstread && blockEXfirstread)
   {
     mb.task();
   }
@@ -139,6 +145,13 @@ bool handleTopic(const char *c_topic, const char *st_dat)
       blockmbread = false;
       Serial.printf("Topic= %s  Register= 0x%x Wert= %f\r\n", handler.topic, handler.regadress, value);
 
+      // Chek first Val in import and export register
+      if (!blockIMfirstread || !blockEXfirstread)
+      {
+        if (!blockIMfirstread && strcmp(c_topic, SUB_TOPIC_E_IM) == 0 && value > 0) blockIMfirstread = true;
+        if (!blockEXfirstread && strcmp(c_topic, SUB_TOPIC_E_EX) == 0 && value > 0) blockEXfirstread = true;
+      }
+      
       return true;
     }
   }
@@ -286,7 +299,6 @@ esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
   return ESP_OK;
 }
 
-
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 {
   Serial.printf("[WiFi-event] event: %d\n", event);
@@ -310,14 +322,14 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
     Serial.println("Connected to access point");
     Serial.println(WiFi.getHostname());
     Serial.printf("RSSI: %d\n", WiFi.RSSI());
-    wifi_connect_retry =0;
+    wifi_connect_retry = 0;
     break;
   case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
     Serial.printf("Disconnected from WiFi access point");
     Serial.printf("Disconnected from WiFi access point. Count = %d\n", wifi_connect_retry);
-    wifi_connect_retry++;  // keine Überlaufüberwachung
+    wifi_connect_retry++; // keine Überlaufüberwachung
     WiFi.reconnect();
-   
+
     break;
   case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
     Serial.println("Authentication mode of access point has changed");
@@ -359,7 +371,6 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
     break;
   case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
     Serial.println("Client connected");
-
     break;
   case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
     Serial.println("Client disconnected");
