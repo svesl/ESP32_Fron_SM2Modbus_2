@@ -93,7 +93,7 @@ void setup()
   {
   }
   Serial.println("__ OK __");
-  Serial.println("Dipl.-Ing. (FH) Sven Slawinski");
+  Serial.println("Fronius SmartMeter Emulator");
   Serial.print("Version ");
   Serial.println(Version);
 
@@ -143,13 +143,13 @@ bool handleTopic(const char *c_topic, const char *st_dat)
       mb.Hreg(handler.regadress, hexbytes[1]);
       mb.Hreg((handler.regadress + 1), hexbytes[0]);
       blockmbread = false;
-      Serial.printf("Topic= %s  Register= 0x%x Wert= %f\r\n", handler.topic, handler.regadress, value);
+      //Serial.printf("Topic: %s  Register= 0x%x Wert= %f\r\n", handler.topic, handler.regadress, value);
 
       // Chek first Val in import and export register
       if (!blockIMfirstread || !blockEXfirstread)
       {
-        if (!blockIMfirstread && strcmp(c_topic, SUB_TOPIC_E_IM) == 0 && value > 0) blockIMfirstread = true;
-        if (!blockEXfirstread && strcmp(c_topic, SUB_TOPIC_E_EX) == 0 && value > 0) blockEXfirstread = true;
+        if (!blockIMfirstread && strcmp(c_topic, SUB_TOPIC_E_IM) == 0 && value > 0) {blockIMfirstread = true;}
+        if (!blockEXfirstread && strcmp(c_topic, SUB_TOPIC_E_EX) == 0 && value > 0) {blockEXfirstread = true;}
       }
       
       return true;
