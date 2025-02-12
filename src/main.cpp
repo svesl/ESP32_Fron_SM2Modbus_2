@@ -21,11 +21,12 @@
 //-- 1.2   svesl  2024/11/28    test and add registers
 //-- 1.3   svesl  2024/12/16    add WiFi Events and reconnect support
 //-- 1.4   svesl  2024/12/19    add Block MODBUS befor first value on import and export available
+//-- 1.5   svesl  2025/1/10     add Block value = 0 on import and export 
 //-- --------------------------------------------------------------------------
 //-- TODO
 //-- Speicherung Zählerstande für Import Export im Flash oder nvram für reboot
 
-#define Version 1.4
+#define Version 1.5
 #include <Arduino.h>
 #include <ModbusIP_ESP8266.h> //für MODBUS
 #include <WiFi.h>             //für WiFi Verbinding
@@ -124,7 +125,7 @@ void loop()
 {
   if (!blockmbread && blockIMfirstread && blockEXfirstread)
   {
-    mb.task();
+     mb.task();
   }
 }
 
@@ -138,20 +139,32 @@ bool handleTopic(const char *c_topic, const char *st_dat)
 
       String str_dat = st_dat;
       float value = str_dat.toFloat();
-      uint16_t *hexbytes = reinterpret_cast<uint16_t *>(&value);
-      blockmbread = true;
-      mb.Hreg(handler.regadress, hexbytes[1]);
-      mb.Hreg((handler.regadress + 1), hexbytes[0]);
-      blockmbread = false;
-      //Serial.printf("Topic: %s  Register= 0x%x Wert= %f\r\n", handler.topic, handler.regadress, value);
-
+      if ((strcmp(c_topic, SUB_TOPIC_E_IM) == 0 && value <= 0) || strcmp(c_topic, SUB_TOPIC_E_EX) == 0 && value <= 0)
+      {
+        Serial.printf("Achtung Energy value 0 on Topic: %s  Register= 0x%x Wert= %f\r\n", handler.topic, handler.regadress, value);
+      }
+      else
+      {
+        uint16_t *hexbytes = reinterpret_cast<uint16_t *>(&value);
+        blockmbread = true;
+        mb.Hreg(handler.regadress, hexbytes[1]);
+        mb.Hreg((handler.regadress + 1), hexbytes[0]);
+        blockmbread = false;
+       // Serial.printf("Topic: %s  Register= 0x%x Wert= %f\r\n", handler.topic, handler.regadress, value);
+      }
       // Chek first Val in import and export register
       if (!blockIMfirstread || !blockEXfirstread)
       {
-        if (!blockIMfirstread && strcmp(c_topic, SUB_TOPIC_E_IM) == 0 && value > 0) {blockIMfirstread = true;}
-        if (!blockEXfirstread && strcmp(c_topic, SUB_TOPIC_E_EX) == 0 && value > 0) {blockEXfirstread = true;}
+        if (!blockIMfirstread && strcmp(c_topic, SUB_TOPIC_E_IM) == 0 && value > 0)
+        {
+          blockIMfirstread = true;
+        }
+        if (!blockEXfirstread && strcmp(c_topic, SUB_TOPIC_E_EX) == 0 && value > 0)
+        {
+          blockEXfirstread = true;
+        }
       }
-      
+
       return true;
     }
   }
