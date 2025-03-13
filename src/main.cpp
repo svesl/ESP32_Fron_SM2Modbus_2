@@ -22,11 +22,12 @@
 //-- 1.3   svesl  2024/12/16    add WiFi Events and reconnect support
 //-- 1.4   svesl  2024/12/19    add Block MODBUS befor first value on import and export available
 //-- 1.5   svesl  2025/1/10     add Block value = 0 on import and export 
+//-- 1.6   svesl  2025/3/12     add reboot count support
 //-- --------------------------------------------------------------------------
 //-- TODO
 //-- Speicherung Zählerstande für Import Export im Flash oder nvram für reboot
 
-#define Version 1.5
+#define Version 1.6
 #include <Arduino.h>
 #include <ModbusIP_ESP8266.h> //für MODBUS
 #include <WiFi.h>             //für WiFi Verbinding
@@ -34,6 +35,7 @@
 #include <mqtt_client.h> //
 #include <iostream>
 #include <cstring>
+#include <Preferences.h> // manages non volatile memory
 
 #include "FroniuSM_Registerdef.h"
 #include "myMQTTDefs.h"
@@ -86,6 +88,9 @@ ca_stdregisters modbus_common = {
     MODBUS_REG_SM_VERSION,
     MODBUS_REG_SM_SN};
 
+
+void BootCntService(void); //count, store non-volatile and print number of boots
+
 void setup()
 {
   // Init Serial monitor
@@ -97,6 +102,8 @@ void setup()
   Serial.println("Fronius SmartMeter Emulator");
   Serial.print("Version ");
   Serial.println(Version);
+
+  BootCntService();
 
   // Connect to WiFi
   WiFi.onEvent(WiFiEvent);
@@ -254,6 +261,25 @@ void init_mqtt(void)
   // esp_mqtt_client_subscribe(mqttclient, SUB_TOPIC_I_AC, 1);
   // delay(200);
   // esp_mqtt_client_publish(mqttclient, "SEND_TOPIC_1", "testesp online", 15, 1, false);
+}
+
+void BootCntService(void)
+{
+  Preferences prefs;              // start instance for nvs usage
+  unsigned int bootCount;         // Zähler der Geräteneustarts
+  if (!prefs.begin("nvs", false)) // Initialize the non volatile memory
+  {
+    Serial.println("NVS error:");
+    //return ER_NVS;
+  }
+  else
+  {
+    Serial.println("NVS load bootcount");
+    bootCount = prefs.getUInt("bootcnt_por");
+    Serial.printf("NVS bootcount read %d\n", bootCount);
+    bootCount++;
+    prefs.putUInt("bootcnt_por", bootCount); // store new value
+  }
 }
 
 esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
