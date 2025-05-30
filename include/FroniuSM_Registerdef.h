@@ -1,11 +1,16 @@
 #ifndef _FRON_SM_REG_h_
 #define _FRON_SM_REG_h_
 
+// for multi use of smartmeter edit 
+// MODBUS_REG_SM_SN (must be diferent from primary) 
+// MODBUS_REG_SM_ADDR Modbus TCP Address:  240 (Adress 1) 241 (Adress 2)
+// MODBUS_REG_SM_NAME 
 #define MODBUS_REG_SM_MFRNAME "Fronius"
 #define MODBUS_REG_SM_MODEL "Smart Meter 63A"
-#define MODBUS_REG_SM_NAME "<primary>"
+#define MODBUS_REG_SM_NAME "<primary>"  //"<primary>"
 #define MODBUS_REG_SM_SN "00000001"
-#define MODBUS_REG_SM_VERSION "2.9"
+#define MODBUS_REG_SM_VERSION "3.0.0-1"
+#define MODBUS_REG_SM_ADDR 240            // 40068 DeviceAddress Modbus TCP Address:  240 (Adress 1) 241 (Adress 2)
 
 #define MODBUS_REG_I_TO (uint16_t)0x9c87  //40071
 #define MODBUS_REG_I_L1 (uint16_t)0x9c89  //40073

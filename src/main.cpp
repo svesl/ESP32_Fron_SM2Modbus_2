@@ -23,11 +23,13 @@
 //-- 1.4   svesl  2024/12/19    add Block MODBUS befor first value on import and export available
 //-- 1.5   svesl  2025/1/10     add Block value = 0 on import and export 
 //-- 1.6   svesl  2025/3/12     add reboot count support
+//-- 1.7   svesl  2025/5/30     add reconnect counter on wifi and mqtt for debugging 
+//--                            add adress define
 //-- --------------------------------------------------------------------------
 //-- TODO
 //-- Speicherung Zählerstande für Import Export im Flash oder nvram für reboot
 
-#define Version 1.6
+#define Version 1.7
 #include <Arduino.h>
 #include <ModbusIP_ESP8266.h> //für MODBUS
 #include <WiFi.h>             //für WiFi Verbinding
@@ -61,6 +63,9 @@ bool blockEXfirstread = false; // Blockiert MODBUS bis erster gültiger Zählerw
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info);
 uint32_t wifi_connect_retry = 0;
 const char *hostname = "esp32-FronSM2MODBUS";
+uint32_t reconnect_cnt_mqtt=0;
+uint32_t reconnect_cnt_wifi=0;
+
 
 // Array of TopicHandler to match topics to register
 TopicHandler handlers[] = {
@@ -100,11 +105,12 @@ void setup()
   }
   Serial.println("__ OK __");
   Serial.println("Fronius SmartMeter Emulator");
-  Serial.print("Version ");
+  Serial.print("Version: ");
   Serial.println(Version);
 
   BootCntService();
 
+  WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
   // Connect to WiFi
   WiFi.onEvent(WiFiEvent);
   // WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
@@ -132,7 +138,7 @@ void loop()
 {
   if (!blockmbread && blockIMfirstread && blockEXfirstread)
   {
-     mb.task();
+     mb.task(); //Serial.print(".");
   }
 }
 
@@ -240,7 +246,7 @@ void fillModbusregs(void)
     // Serial.printf("Modbus: write %d to register %d\r\n", value, (0x9c74 + (i / 2)));
   }
 
-  mb.addHreg(0x9c84, 100);    // 40068 DeviceAddress Modbus TCP Address: 202
+  mb.addHreg(0x9c84, MODBUS_REG_SM_ADDR);    // 40068 DeviceAddress Modbus TCP Address: 202  240 (Adress 1) 241 (Adress 2)
   mb.addHreg(0x9c85, 213);    // 40069 SunSpec_DID
   mb.addHreg(0x9c86, 124);    // 40070 SunSpec_Length
   mb.addHreg(0x9c87, 0, 123); // 40071 - 40194 smartmeter data
@@ -297,6 +303,8 @@ esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
     esp_mqtt_client_subscribe(mqttclient, SUB_TOPIC_BASE, 0);
     // esp_mqtt_client_subscribe(mqttclient, SUB_TOPIC_I_AC, 1);
     isConnected = true;
+    reconnect_cnt_mqtt++;
+    Serial.printf("Num of MQTT connectins: %u\n", reconnect_cnt_mqtt);
     break;
   case MQTT_EVENT_DISCONNECTED:
     isConnected = false;
@@ -362,6 +370,9 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
     Serial.println(WiFi.getHostname());
     Serial.printf("RSSI: %d\n", WiFi.RSSI());
     wifi_connect_retry = 0;
+    reconnect_cnt_wifi++;
+    Serial.printf("Num of WiFi connectins: %u\n", reconnect_cnt_wifi);
+    
     break;
   case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
     Serial.printf("Disconnected from WiFi access point");
