@@ -9,7 +9,7 @@
 #define MODBUS_REG_SM_MODEL "Smart Meter 63A"
 #define MODBUS_REG_SM_NAME "<primary>"  //"<primary>"
 #define MODBUS_REG_SM_SN "00000001"
-#define MODBUS_REG_SM_VERSION "3.0.0-1"
+#define MODBUS_REG_SM_VERSION "3.0.1-0000"
 #define MODBUS_REG_SM_ADDR 240            // 40068 DeviceAddress Modbus TCP Address:  240 (Adress 1) 241 (Adress 2)
 
 #define MODBUS_REG_I_TO (uint16_t)0x9c87  //40071

@@ -25,11 +25,12 @@
 //-- 1.6   svesl  2025/3/12     add reboot count support
 //-- 1.7   svesl  2025/5/30     add reconnect counter on wifi and mqtt for debugging 
 //--                            add adress define
+//-- 1.8   svesl  2025/07/08    change MODBUS Lib to 4.1.1 cgjgh/modbus-esp8266@^4.1.1 change espressif@6.11
 //-- --------------------------------------------------------------------------
 //-- TODO
 //-- Speicherung Zählerstande für Import Export im Flash oder nvram für reboot
 
-#define Version 1.7
+#define Version 1.8
 #include <Arduino.h>
 #include <ModbusIP_ESP8266.h> //für MODBUS
 #include <WiFi.h>             //für WiFi Verbinding
@@ -43,7 +44,7 @@
 #include "myMQTTDefs.h"
 
 // Modbus server object
-ModbusIP mb;
+ModbusIP mb; 
 void initModbuscommon(void);
 void fillModbusregs(void);
 
@@ -127,7 +128,7 @@ void setup()
 
   init_mqtt();
 
-  mb.server();
+  mb.server(); 
   // initModbuscommon();
   fillModbusregs();
 
