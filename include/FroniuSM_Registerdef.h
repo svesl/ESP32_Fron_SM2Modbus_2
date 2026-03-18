@@ -16,11 +16,14 @@
 #define MODBUS_REG_I_L1 (uint16_t)0x9c89  //40073
 #define MODBUS_REG_I_L2 (uint16_t)0x9c8b  //40075
 #define MODBUS_REG_I_L3 (uint16_t)0x9c8d  //40077
-
+//40079 #Voltage - Average Phase to Neutral 
 #define MODBUS_REG_U_L1 (uint16_t)0x9c91  //40081
 #define MODBUS_REG_U_L2 (uint16_t)0x9c93  //40083
 #define MODBUS_REG_U_L3 (uint16_t)0x9c95  //40085
-
+// 40087 #Voltage - Average Phase to Phase [V]
+// 40089 #Voltage - Phase L1 to L2 [V]
+// 40091 #Voltage - Phase L2 to L3 [V]
+// 40093 #Voltage - Phase L1 to L3 [V]
 #define MODBUS_REG_FREQ (uint16_t)0x9c9f  //40095
 
 #define MODBUS_REG_P_TO (uint16_t)0x9ca1  //40097
